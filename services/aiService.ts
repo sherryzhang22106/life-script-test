@@ -83,12 +83,29 @@ const parseFormattedResult = (text: string): Partial<QuizResults> => {
     return endIdx === -1 ? rest.trim() : rest.slice(0, endIdx).trim();
   };
 
+  // 解析列表项：支持 | 分隔或换行分隔，同时处理数字编号格式
+  const parseList = (content: string): string[] => {
+    if (!content) return [];
+
+    // 如果包含 |，按 | 分隔
+    if (content.includes('|')) {
+      return content.split('|').map(s => s.trim()).filter(s => s.length > 0);
+    }
+
+    // 否则按换行分隔，并清理数字编号（如 "1. ", "1、", "1："等）
+    return content
+      .split('\n')
+      .map(s => s.trim())
+      .map(s => s.replace(/^[\d]+[.、：:]\s*/, '')) // 移除开头的数字编号
+      .filter(s => s.length > 0 && !s.match(/^(建议|技巧|预警)[\d]*$/)); // 过滤掉纯标题行
+  };
+
   return {
     analysis: {
       module1: { label: "AI 私人定制剧本", content: getSection("[CONTENT_START]", "[SUGGESTIONS]") },
-      module2: { suggestions: getSection("[SUGGESTIONS]", "[TIPS]").split('|').filter(s => s.trim()) },
-      module3: { tips: getSection("[TIPS]", "[WARNINGS]").split('|').filter(s => s.trim()) },
-      module4: { warnings: getSection("[WARNINGS]", "[COPY_MEME]").split('|').filter(s => s.trim()) },
+      module2: { suggestions: parseList(getSection("[SUGGESTIONS]", "[TIPS]")) },
+      module3: { tips: parseList(getSection("[TIPS]", "[WARNINGS]")) },
+      module4: { warnings: parseList(getSection("[WARNINGS]", "[COPY_MEME]")) },
     },
     shareCopy: {
       meme: getSection("[COPY_MEME]", "[COPY_LITERARY]"),
